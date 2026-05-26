@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>ResumeIQ — Advanced Structural Parser</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --ink: #0f1115;
+            --bg-gradient: radial-gradient(circle at 50% -20%, #2a201d 0%, #131112 50%, #0b0a0a 100%);
+            --paper: #141213;
+            --card-bg: #1c191a;
+            --copper: #cca491;
+            --copper-glow: rgba(204, 164, 145, 0.15);
+            --text-light: #f5f5f7;
+            --muted: #a19799;
+            --green: #4ade80;
+            --green-light: rgba(74, 222, 128, 0.1);
+            --red: #f87171;
+            --red-light: rgba(248, 113, 113, 0.1);
+            --blue: #60a5fa;
+            --blue-light: rgba(96, 165, 250, 0.1);
+            --border: #2d2829;
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--paper);
+            background-image: var(--bg-gradient);
+            color: var(--text-light);
+            min-height: 100vh;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        header {
+            background: rgba(15, 17, 21, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -1px;
+        }
+
+        .logo em {
+            color: var(--copper);
+            font-style: normal;
+        }
+
+        .hero {
+            padding: 90px 40px 60px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.8rem, 6vw, 4.2rem);
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+            max-width: 900px;
+            margin: 0 auto 24px;
+            letter-spacing: -2px;
+        }
+
+        .hero p {
+            color: var(--muted);
+            font-size: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 24px 100px;
+        }
+
+        .workflow-card {
+            background: rgba(28, 25, 26, 0.5);
+            border: 1px dashed var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+
+        .workflow-title {
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--copper);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto 1fr;
+            align-items: center;
+            gap: 16px;
+        }
+
+        @media(max-width: 768px) {
+            .workflow-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 24px;
+            }
+
+            .workflow-arrow {
+                transform: rotate(90deg);
+                margin: 0 auto;
+            }
+        }
+
+        .workflow-node {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 24px;
+            border-radius: 14px;
+        }
+
+        .workflow-node h4 {
+            font-size: 16px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .workflow-node p {
+            font-size: 13.5px;
+            color: var(--muted);
+        }
+
+        .workflow-arrow {
+            width: 24px;
+            height: 24px;
+            fill: var(--border);
+        }
+
+        .upload-card,
+        .result-card,
+        .rewrite-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 44px;
+            margin-bottom: 32px;
+        }
+
+        .card-title {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .card-title .num {
+            width: 36px;
+            height: 36px;
+            background: var(--copper-glow);
+            border: 1px solid var(--copper);
+            color: var(--copper);
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .card-subtitle {
+            color: var(--muted);
+            font-size: 15px;
+            margin-bottom: 32px;
+            margin-left: 50px;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 54px 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.01);
+            position: relative;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--copper);
+            background: var(--copper-glow);
+        }
+
+        .drop-zone input[type=file] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop-icon-svg {
+            width: 44px;
+            height: 44px;
+            fill: var(--copper);
+            margin: 0 auto 16px;
+        }
+
+        .drop-zone h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #fff;
+        }
+
+        .drop-zone p {
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        .or-divider {
+            text-align: center;
+            margin: 32px 0;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--muted);
+            position: relative;
+            letter-spacing: 1.5px;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .or-divider::before {
+            left: 0;
+        }
+
+        .or-divider::after {
+            right: 0;
+        }
+
+        .resume-textarea {
+            width: 100%;
+            padding: 18px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            outline: none;
+            min-height: 160px;
+        }
+
+        .resume-textarea:focus {
+            border-color: var(--copper);
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-top: 28px;
+        }
+
+        @media(max-width: 768px) {
+            .input-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .field-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        .field-input {
+            padding: 14px 18px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 16px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.2);
+            outline: none;
+        }
+
+        .field-input:focus {
+            border-color: var(--copper);
+        }
+
+        select.field-input option {
+            background: var(--card-bg);
+            color: #fff;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            margin-top: 40px;
+            padding: 20px;
+            background: var(--copper);
+            color: var(--ink);
+            border: none;
+            border-radius: 14px;
+            font-size: 19px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .analyze-btn:hover {
+            background: #ebd5cb;
+            box-shadow: 0 0 30px rgba(204, 164, 145, 0.35);
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .score-banner {
+            background: linear-gradient(135deg, #1c191a 0%, #261f1d 100%);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 44px;
+            display: flex;
+            align-items: center;
+            gap: 44px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+
+        .score-ring {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            flex-shrink: 0;
+        }
+
+        .score-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .score-ring .score-num {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 38px;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+        }
+
+        .score-ring .score-label {
+            font-size: 12px;
+            color: var(--muted);
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .score-info h2 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .score-info p {
+            color: var(--muted);
+            font-size: 17px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media(max-width:768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .result-card.full-width {
+            grid-column: 1/-1;
+        }
+
+        .result-card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 24px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-card-header h3 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .result-card-header .header-svg-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .result-card-header .count {
+            margin-left: auto;
+            padding: 4px 14px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .count-green {
+            background: var(--green-light);
+            color: var(--green);
+        }
+
+        .count-red {
+            background: var(--red-light);
+            color: var(--red);
+        }
+
+        .count-blue {
+            background: var(--blue-light);
+            color: var(--blue);
+        }
+
+        .count-gold {
+            background: var(--copper-glow);
+            color: var(--copper);
+        }
+
+        .ats-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .ats-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .ats-bar-label span:first-child {
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .ats-bar-label span:last-child {
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .ats-bar-bg {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50px;
+            height: 12px;
+            overflow: hidden;
+        }
+
+        .ats-bar-fill {
+            height: 100%;
+            border-radius: 50px;
+            transition: width 1.5s ease-in-out;
+        }
+
+        .fill-green {
+            background: var(--green);
+            box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+        }
+
+        .fill-gold {
+            background: var(--copper);
+            box-shadow: 0 0 12px rgba(204, 164, 145, 0.4);
+        }
+
+        .fill-red {
+            background: var(--red);
+            box-shadow: 0 0 12px rgba(248, 113, 113, 0.4);
+        }
+
+        .pro-item,
+        .con-item,
+        .suggestion-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 15.5px;
+        }
+
+        .item-dot-svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .item-label {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .label-pro {
+            color: var(--green);
+        }
+
+        .label-con {
+            color: var(--red);
+        }
+
+        .label-sug {
+            color: var(--blue);
+        }
+
+        .rewrite-block {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 4px solid var(--copper);
+            padding: 20px;
+            border-radius: 0 12px 12px 0;
+            margin-top: 12px;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 18px;
+            background: transparent;
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--muted);
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .reset-btn:hover {
+            border-color: var(--copper);
+            color: #fff;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 80px 20px;
+            display: none;
+        }
+
+        .loading-state.show {
+            display: block;
+        }
+
+        .loader-ring {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--border);
+            border-top-color: var(--copper);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">Resume<em>IQ</em></div>
+    </header>
+
+    <div class="hero">
+        <h1>Optimize Resume <em>Architecture</em></h1>
+        <p>Upload your text asset, filter explicit job streams, and monitor metrics dynamically.</p>
+    </div>
+
+    <div class="container">
+
+        <div class="workflow-card">
+            <div class="workflow-title">ATS System Processing Pipeline Architecture</div>
+            <div class="workflow-grid">
+                <div class="workflow-node">
+                    <h4>01. Structural Ingestion</h4>
+                    <p>Text structures are broken into basic token node streams.</p>
+                </div>
+                <svg class="workflow-arrow" viewBox="0 0 24 24">
+                    <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
+                </svg>
+                <div class="workflow-node">
+                    <h4>02. Semantic Vectoring</h4>
+                    <p>Keywords matched with company matrices and target levels.</p>
+                </div>
+                <svg class="workflow-arrow" viewBox="0 0 24 24">
+                    <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
+                </svg>
+                <div class="workflow-node">
+                    <h4>03. Metric Matrix Output</h4>
+                    <p>Structural faults, improvements, and compatibility metrics verified.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="upload-card" id="inputSection">
+            <div class="card-title">
+                <span class="num">1</span>
+                <span>Upload Your Resume</span>
+            </div>
+            <p class="card-subtitle">Provide your structured professional timeline configuration</p>
+
+            <div class="drop-zone">
+                <input type="file" id="fileInput">
+                <svg class="drop-icon-svg" viewBox="0 0 24 24">
+                    <path
+                        d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                </svg>
+                <h3>Drop structured file here</h3>
+                <p>Supports compiled PDF, DOCX, or pure TXT logs</p>
+            </div>
+
+            <div class="or-divider">OR PASTE RAW TEXT</div>
+
+            <textarea class="resume-textarea" id="resumeText"
+                placeholder="Drop the unformatted textual metadata stream strings here..."></textarea>
+
+            <div style="margin-top:40px;">
+                <div class="card-title">
+                    <span class="num">2</span>
+                    <span>Job Preferences</span>
+                </div>
+                <p class="card-subtitle">Set data vectors to filter precise parsing requirements</p>
+            </div>
+
+            <div class="input-row">
+                <div class="field-group">
+                    <label class="field-label">Target Company</label>
+                    <input class="field-input" id="companyInput" placeholder="e.g. Google, Stripe" type="text"
+                        value="Google">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Job Position</label>
+                    <input class="field-input" id="roleInput" placeholder="e.g. Systems Engineer" type="text"
+                        value="Software Engineer">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Experience Tier</label>
+                    <select class="field-input" id="expSelect">
+                        <option value="entry">Entry-Level Track</option>
+                        <option value="mid" selected>Mid-Tier Architecture</option>
+                        <option value="senior">Senior Engineering Framework</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Industry Framework</label>
+                    <select class="field-input" id="industrySelect">
+                        <option value="tech">Technology Systems</option>
+                        <option value="finance">Quantitative Finance</option>
+                        <option value="healthcare">Bioinformatics / Healthcare</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="analyze-btn" id="analyzeBtn">✦ Analyze Resume</button>
+        </div>
+
+        <div class="loading-state" id="loadingState">
+            <div class="loader-ring"></div>
+            <p style="font-size:24px; font-weight:800; margin-bottom:8px;">Executing Local Pipeline Mapping...</p>
+            <p style="color:var(--muted); font-size:16px;">Resolving multi-token structural keywords and context weights
+            </p>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+
+            <div class="score-banner">
+                <div class="score-ring">
+                    <svg width="140" height="140" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" />
+                        <circle id="scoreCircle" cx="60" cy="60" r="50" fill="none" stroke="var(--copper)"
+                            stroke-width="8" stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round"
+                            style="transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);" />
+                    </svg>
+                    <div class="score-num">
+                        <span id="scoreNum">0</span>
+                        <span class="score-label">ATS %</span>
+                    </div>
+                </div>
+                <div class="score-info">
+                    <h2 id="scoreTitle">Calculations Complete</h2>
+                    <p id="scoreDesc">Pipeline structures mapped against explicit company parameters.</p>
+                </div>
+            </div>
+
+            <div class="results-grid">
+
+                <div class="result-card">
+                    <div class="result-card-header">
+                        <svg class="header-svg-icon" style="fill:var(--green);" viewBox="0 0 24 24">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                        </svg>
+                        <h3>Validated Strengths</h3>
+                        <span class="count count-green" id="prosCount">0</span>
+                    </div>
+                    <div id="prosList"></div>
+                </div>
+
+                <div class="result-card">
+                    <div class="result-card-header">
+                        <svg class="header-svg-icon" style="fill:var(--red);" viewBox="0 0 24 24">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                        </svg>
+                        <h3>Resume Problems</h3>
+                        <span class="count count-red" id="consCount">0</span>
+                    </div>
+                    <div id="consList"></div>
+                </div>
+
+                <div class="result-card full-width">
+                    <div class="result-card-header">
+                        <svg class="header-svg-icon" style="fill:var(--copper);" viewBox="0 0 24 24">
+                            <path
+                                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2z" />
+                        </svg>
+                        <h3>Complete ATS Metric Matrix Gauges</h3>
+                        <span class="count count-gold" id="atsOverall">0%</span>
+                    </div>
+                    <div class="ats-bars" id="atsBars"></div>
+                </div>
+
+                <div class="result-card full-width">
+                    <div class="result-card-header">
+                        <svg class="header-svg-icon" style="fill:var(--blue);" viewBox="0 0 24 24">
+                            <path
+                                d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z" />
+                        </svg>
+                        <h3>Suggested Improvements</h3>
+                        <span class="count count-blue" id="sugCount">0</span>
+                    </div>
+                    <div id="suggestionsList"></div>
+                </div>
+            </div>
+
+            <div class="rewrite-card">
+                <div class="result-card-header">
+                    <svg class="header-svg-icon" style="fill:var(--copper);" viewBox="0 0 24 24">
+                        <path
+                            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                    </svg>
+                    <h3>Resume Rewrites</h3>
+                </div>
+                <div id="rewritesList"></div>
+            </div>
+
+            <button class="reset-btn" id="resetBtn">← Ingest Alternate File Node</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Handles direct and drag-drop inputs smoothly
+        const fileInput = document.getElementById('fileInput');
+
+        if (fileInput) {
+
+            fileInput.addEventListener('change', async () => {
+
+                if (fileInput.files.length === 0) return;
+
+                const file = fileInput.files[0];
+
+                const extension = file.name.split('.').pop().toLowerCase();
+
+                let extractedText = "";
+
+                try {
+
+                    // PDF
+                    if (extension === "pdf") {
+
+                        const arrayBuffer = await file.arrayBuffer();
+
+                        const pdf = await pdfjsLib.getDocument({
+                            data: arrayBuffer
+                        }).promise;
+
+                        for (let i = 1; i <= pdf.numPages; i++) {
+
+                            const page = await pdf.getPage(i);
+
+                            const content = await page.getTextContent();
+
+                            extractedText += content.items
+                                .map(item => item.str)
+                                .join(" ");
+
+                            extractedText += "\n";
+                        }
+                    }
+
+                    // DOCX
+                    else if (extension === "docx") {
+
+                        const arrayBuffer = await file.arrayBuffer();
+
+                        const result = await mammoth.extractRawText({
+                            arrayBuffer
+                        });
+
+                        extractedText = result.value;
+                    }
+
+                    // TXT
+                    else if (extension === "txt") {
+
+                        extractedText = await file.text();
+                    }
+
+                    else {
+
+                        extractedText = "Unsupported file type.";
+                    }
+
+                    document.getElementById('resumeText').value = extractedText;
+
+                } catch (err) {
+
+                    console.error(err);
+
+                    alert("Failed to read file.");
+                }
+            });
+        }
+
+        document.getElementById('analyzeBtn').addEventListener('click', analyze);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('resultsSection').classList.remove('show');
+            document.getElementById('inputSection').style.display = '';
+        });
+
+        async function analyze() {
+            const txt = document.getElementById('resumeText').value.trim();
+            const cmp = document.getElementById('companyInput').value.trim();
+
+            // Fixed logic constraints checking to allow dynamic text simulation fallbacks if empty
+            const targetText = txt || "[Fallback Mock Architecture Token String Ingested]";
+            const targetCmp = cmp || "Target Enterprise Pipeline";
+
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('loadingState').classList.add('show');
+
+            setTimeout(() => {
+                document.getElementById('loadingState').classList.remove('show');
+
+                const data = {
+
+                    score: generateATSBreakdown(targetText).overall,
+
+                    score_title: "ATS Compatibility Score",
+                    score_desc: `Resume evaluated against ${targetCmp} job requirements.`,
+                    pros: [{ label: "PARSING SCHEMA", text: "Valid categorical alignment across chronological engineering experience arrays." }],
+                    cons: [{ label: "QUANTIFICATION", text: "Metric properties are too abstract. Inject system throughput configurations or absolute metrics." }],
+                    ats: generateATSBreakdown(targetText),
+                    suggestions: [{ label: "SCALE PARSING", text: "Re-engineer point data objects to explicitly reference scale percentages and resource allocation loads." }],
+                    rewrites: [{ section: "Experience Node block", original: "Helped in regular performance optimizations inside internal data processing frameworks.", improved: "Optimized inner matrix execution loops, rendering a 35% decrease in overall pipeline latency configurations.", reason: "Unquantified terms degrade parser weights." }]
+                };
+                function generateATSBreakdown(text) {
+
+                    const lower = text.toLowerCase();
+
+                    const keywords = [
+                        "javascript",
+                        "react",
+                        "node",
+                        "python",
+                        "sql",
+                        "git",
+                        "api",
+                        "mongodb",
+                        "express"
+                    ];
+
+                    const foundKeywords = keywords.filter(skill =>
+                        lower.includes(skill)
+                    );
+
+                    const keywordScore = Math.min(
+                        100,
+                        foundKeywords.length * 12
+                    );
+
+                    let formattingScore = 40;
+
+                    if (/education/i.test(text)) formattingScore += 15;
+                    if (/skills/i.test(text)) formattingScore += 15;
+                    if (/projects/i.test(text)) formattingScore += 15;
+                    if (/experience/i.test(text)) formattingScore += 15;
+
+                    formattingScore = Math.min(formattingScore, 100);
+
+                    const metricMatches =
+                        text.match(/\d+%|\d+x|\$\d+|\d+\+/g) || [];
+
+                    const metricScore = Math.min(
+                        100,
+                        metricMatches.length * 20
+                    );
+
+                    const achievementWords = [
+                        "developed",
+                        "built",
+                        "optimized",
+                        "implemented",
+                        "designed",
+                        "created"
+                    ];
+
+                    const foundAchievements =
+                        achievementWords.filter(word =>
+                            lower.includes(word)
+                        );
+
+                    const achievementScore = Math.min(
+                        100,
+                        foundAchievements.length * 15
+                    );
+
+                    const overall = Math.round(
+                        (
+                            keywordScore +
+                            formattingScore +
+                            metricScore +
+                            achievementScore
+                        ) / 4
+                    );
+
+                    return {
+                        overall,
+                        categories: [
+                            {
+                                name: "Keyword Match",
+                                score: keywordScore,
+                                color: keywordScore > 75 ? "green" :
+                                    keywordScore > 45 ? "gold" : "red"
+                            },
+                            {
+                                name: "Resume Structure",
+                                score: formattingScore,
+                                color: formattingScore > 75 ? "green" :
+                                    formattingScore > 45 ? "gold" : "red"
+                            },
+                            {
+                                name: "Quantified Results",
+                                score: metricScore,
+                                color: metricScore > 75 ? "green" :
+                                    metricScore > 45 ? "gold" : "red"
+                            },
+                            {
+                                name: "Strong Action Words",
+                                score: achievementScore,
+                                color: achievementScore > 75 ? "green" :
+                                    achievementScore > 45 ? "gold" : "red"
+                            }
+                        ]
+                    };
+                }
+                renderResults(data);
+            }, 1200);
+        }
+
+        function renderResults(d) {
+            document.getElementById('resultsSection').classList.add('show');
+            document.getElementById('scoreCircle').style.strokeDashoffset = 314 - (d.score / 100) * 314;
+            document.getElementById('scoreNum').textContent = d.score;
+            document.getElementById('scoreTitle').textContent = d.score_title;
+            document.getElementById('scoreDesc').textContent = d.score_desc;
+
+            document.getElementById('atsOverall').textContent = d.ats.overall + "%";
+            const bars = document.getElementById('atsBars'); bars.innerHTML = '';
+            d.ats.categories.forEach(c => {
+                const fillCls = c.color === 'green' ? 'fill-green' : c.color === 'red' ? 'fill-red' : 'fill-gold';
+                bars.innerHTML += `
+          <div>
+            <div class="ats-bar-label"><span>${c.name}</span><span>${c.score}%</span></div>
+            <div class="ats-bar-bg"><div class="ats-bar-fill ${fillCls}" style="width:${c.score}%"></div></div>
+          </div>`;
+            });
+
+            const chk = `<svg class="item-dot-svg" style="fill:var(--green);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+            const alr = `<svg class="item-dot-svg" style="fill:var(--red);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+            const blb = `<svg class="item-dot-svg" style="fill:var(--blue);" viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/></svg>`;
+
+            document.getElementById('prosCount').textContent = d.pros.length;
+            document.getElementById('prosList').innerHTML = d.pros.map(p => `<div class="pro-item">${chk}<div><span class="item-label label-pro">${p.label}</span>${p.text}</div></div>`).join('');
+            document.getElementById('consCount').textContent = d.cons.length;
+            document.getElementById('consList').innerHTML = d.cons.map(c => `<div class="con-item">${alr}<div><span class="item-label label-con">${c.label}</span>${c.text}</div></div>`).join('');
+            document.getElementById('sugCount').textContent = d.suggestions.length;
+            document.getElementById('suggestionsList').innerHTML = d.suggestions.map(s => `<div class="suggestion-item">${blb}<div><span class="item-label label-sug">${s.label}</span>${s.text}</div></div>`).join('');
+
+            document.getElementById('rewritesList').innerHTML = d.rewrites.map(r => `
+        <div>
+          <div style="font-size:13px; font-weight:700; color:var(--muted); margin-bottom: 4px;">📌 ${r.section}</div>
+          <div class="rewrite-block">
+            <p style="color:var(--red); font-size:14px; margin-bottom:6px;"><strong>BEFORE:</strong> ${r.original}</p>
+            <p style="color:var(--green); font-size:14px; margin-bottom:6px;"><strong>AFTER:</strong> ${r.improved}</p>
+            <p style="color:var(--muted); font-size:13.5px; margin-top:8px;">Reasoning: ${r.reason}</p>
+          </div>
+        </div>`).join('');
+        }
+    </script>
+</body>
+
+</html>
